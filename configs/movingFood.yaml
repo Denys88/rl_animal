@@ -1,0 +1,9 @@
+!ArenaConfig
+arenas:
+  0: !Arena
+    t: 0
+    items:
+    - !Item
+      name: GoodGoalBounce
+    - !Item
+      name: BadGoalBounce

@@ -1,0 +1,3 @@
+model_checkpoint_path: "last_an"
+all_model_checkpoint_paths: "stages_allAnimalAI"
+all_model_checkpoint_paths: "last_an"
