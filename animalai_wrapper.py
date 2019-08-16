@@ -31,32 +31,37 @@ class AnimalSkip(gym.Wrapper):
 
         return frame, total_reward, done, info
 
-    def reset(self, **kwargs):
-        return self.env.reset(**kwargs)
+    def reset(self, config=None):
+        return self.env.reset(config)
 
 class AnimalStack(gym.Wrapper):
     def __init__(self, env, k):
         gym.Wrapper.__init__(self, env)
         self.k = k
         self.frames = deque([], maxlen=k)
+        self.vel_info = deque([], maxlen=k) 
         shp = env.observation_space.shape
         shape = (shp[:-1] + (shp[-1] * k,))
         self.observation_space = spaces.Box(low=0, high=1, shape=shape, dtype=np.float32)
 
-    def reset(self):
-        ob = self.env.reset()
+    def reset(self, config = None):
+        frames, vel = self.env.reset(config)
         for _ in range(self.k):
-            self.frames.append(ob)
+            self.frames.append(frames)
+            self.vel_info.append(vel)
         return self._get_ob()
 
     def step(self, action):
         ob, reward, done, info = self.env.step(action)
-        self.frames.append(ob)
+        self.frames.append(ob[0])
+        self.vel_info.append(ob[1])
         return self._get_ob(), reward, done, info
 
     def _get_ob(self):
         assert len(self.frames) == self.k
-        return np.concatenate(self.frames, axis=-1)
+        stacked_frames = np.concatenate(self.frames, axis=-1)
+        stacked_vels = np.concatenate(self.vel_info, axis=-1)
+        return [stacked_frames, stacked_vels]
 
 class ActionFlattenerVec:
 
@@ -68,6 +73,7 @@ class ActionFlattenerVec:
             self.action_space = spaces.MultiDiscrete([n_agents, self.action1 * self.action2])
         else:
             self.action_space = spaces.Discrete((self.action1 * self.action2))
+
 
     def lookup_action(self, action):
         """
@@ -110,13 +116,18 @@ class AnimalWrapper(gym.Wrapper):
                 dtype=image_space_dtype,
                 shape=(camera_height, camera_width, depth)
             )
-        print(self.env.brain.vector_action_space_size)
         self._flattener = ActionFlattenerVec(n_agents)
         self.observation_space = image_space
         self.action_space = self._flattener.action_space
-    def reset(self):
-        ob = self.env.reset()
-        return np.asarray(ob[0], dtype=np.float32)
+        
+    def reset(self, config = None):
+        ob = self.env.reset(config)
+        ob0 = np.asarray(ob[0], dtype=np.float32)
+        shape = np.shape(ob0)
+        if shape[0] == 1:
+            ob0 = np.squeeze(ob0, axis = 0)
+            print(np.shape(ob0))
+        return [ob0, np.asarray(ob[1], dtype=np.float32)]
 
     def render(self, mode='rgb_array'):
         return np.asarray(self.env.env.visual_obs * 255.0, dtype=np.uint8)
@@ -124,4 +135,10 @@ class AnimalWrapper(gym.Wrapper):
     def step(self, action):
         act = self._flattener.lookup_action(action)
         ob, reward, done, info = self.env.step(act)
-        return np.asarray(ob[0], dtype=np.float32), np.asarray(reward), np.asarray(done, dtype=np.bool), np.asarray(info)
+        
+        ob0 = np.asarray(ob[0], dtype=np.float32)
+        shape = np.shape(ob0)
+        if shape[0] == 1:
+            ob0 = np.squeeze(ob0, axis = 0)
+
+        return [ ob0, np.asarray(ob[1], dtype=np.float32)/[16.0, 4.0, 16.0]], np.asarray(reward), np.asarray(done, dtype=np.bool), np.asarray(info)

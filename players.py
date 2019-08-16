@@ -95,7 +95,8 @@ class PpoPlayerDiscrete(BasePlayer):
         self.obs_ph = tf.placeholder('float32', (None, ) + self.obs_space.shape, name = 'obs')
         self.actions_num = self.action_space.n
         self.mask = [False]
-        self.epoch_num = tf.Variable( tf.constant(0, shape=(), dtype=tf.float32), trainable=False)
+        self.epoch_num = tf.Variable( tf.constant(0, shape=(), dtype=tf.float32), trainable=False)#, name = 'epochs')
+
 
         self.normalize_input = self.config['NORMALIZE_INPUT']
         if self.normalize_input:
@@ -103,14 +104,16 @@ class PpoPlayerDiscrete(BasePlayer):
             self.input_obs = self.moving_mean_std.normalize(self.obs_ph, train=False)
         else:
             self.input_obs = self.obs_ph
-
+        #self.input_obs = self.preproc_images(self.input_obs)
+        self.vec_ph = tf.placeholder(tf.float32, [1, 6])
         self.run_dict = {
             'name' : 'agent',
             'inputs' : self.input_obs,
             'batch_num' : 1,
             'games_num' : 1,
             'actions_num' : self.actions_num,
-            'prev_actions_ph' : None
+            'prev_actions_ph' : None,
+            'vels_ph' : self.vec_ph,
         }
         self.last_state = None
         if self.network.is_rnn():
@@ -122,16 +125,33 @@ class PpoPlayerDiscrete(BasePlayer):
         self.saver = tf.train.Saver()
         self.sess.run(tf.global_variables_initializer())
 
+
+
+    def preproc_images(self, input):
+        rgb0 = input[:,:,:,0:3]
+        rgb1 = input[:,:,:,3:6]
+        rgb2 = input[:,:,:,6:9]
+        rgb3 = input[:,:,:,9:12] #this one is original
+        
+        gray0 = tf.image.rgb_to_grayscale(rgb0)
+        gray1 = tf.image.rgb_to_grayscale(rgb1)
+        gray2 = tf.image.rgb_to_grayscale(rgb2)
+        res = tf.concat([rgb3, gray0, gray1, gray2], axis = -1)
+        
+        print('grey_atatat')
+        print(res.get_shape().as_list())
+        return res
+
     def get_action(self, obs, is_determenistic = False):
         #if is_determenistic:
         ret_action = self.action
 
         if self.network.is_rnn():
-            action, self.last_state = self.sess.run([ret_action, self.lstm_state], {self.obs_ph : obs, self.states_ph : self.last_state, self.masks_ph : self.mask})
+            action, self.last_state = self.sess.run([ret_action, self.lstm_state], {self.obs_ph : [obs[0]], self.vec_ph : [obs[1]], self.states_ph : self.last_state, self.masks_ph : self.mask})
         else:
-            action = self.sess.run([ret_action], {self.obs_ph : obs})
+            action = self.sess.run([ret_action], {self.obs_ph : [obs[0]], self.vec_ph : [obs[1]]})
 
-        return   int(np.squeeze(action))
+        return int(np.squeeze(action))
 
     def restore(self, fn):
         self.saver.restore(self.sess, fn)

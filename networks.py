@@ -191,6 +191,27 @@ def animal_conv_net(inputs):
     return conv4
   
 
+def residual_block(inputs, name):
+    depth = inputs.get_shape()[-1].value
+    out = tf.nn.relu(inputs)
+    out = tf.layers.conv2d(out, depth, 3, padding='same', name='res1_' + name, activation=tf.nn.relu)
+    out = tf.layers.conv2d(out, depth, 3, padding='same', name='res2_' + name)
+    return out + inputs
+
+def animal_conv_residual(inputs, depths = [16,32,32,64]):
+    
+    out = inputs
+    i = 0
+    for depth in depths:
+        i = i + 1
+        out = tf.layers.conv2d(out, depth, 3, padding='same', name='layer_' + str(i))
+        out = tf.layers.max_pooling2d(out, pool_size=3, strides=2, padding='same')
+        out = residual_block(out, name='rb1' + str(i))
+        out = residual_block(out, name='rb2' + str(i))
+        print('shapes of layer_' + str(i), str(out.get_shape().as_list()))
+    out = tf.nn.relu(out)
+    return out
+
 
 def animal_a2c_network(name, inputs, actions_num, continuous=False, reuse=False):
     with tf.variable_scope(name, reuse=reuse):
@@ -209,23 +230,51 @@ def animal_a2c_network(name, inputs, actions_num, continuous=False, reuse=False)
             logits = tf.layers.dense(inputs=hidden, units=actions_num, activation=None)
             return logits, value
 
-def animal_a2c_network_lstm(name, inputs, actions_num, env_num, batch_num, continuous=False, reuse=False):
+def animal_a2c_network_lstm(name, inputs, actions_num, env_num, batch_num, vels_ph, continuous=False, reuse=False):
     with tf.variable_scope(name, reuse=reuse):
-        NUM_HIDDEN_NODES = 512
+        NUM_HIDDEN_NODES = 256
         LSTM_UNITS = 256
-        conv3 = animal_conv_net(inputs)
+        conv3 = animal_conv_residual(inputs)
         flatten = tf.contrib.layers.flatten(inputs = conv3)
-        hidden = tf.layers.dense(inputs=flatten, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
 
+        hidden0 = tf.layers.dense(inputs=vels_ph, units=32, activation=tf.nn.elu)
+        hidden1 = tf.layers.dense(inputs=flatten, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
 
+        
         dones_ph = tf.placeholder(tf.bool, [batch_num])
         states_ph = tf.placeholder(tf.float32, [env_num, 2*LSTM_UNITS])
-        lstm_out, lstm_state, initial_state = openai_lstm('lstm_ac', hidden, dones_ph=dones_ph, states_ph=states_ph, units=LSTM_UNITS, env_num=env_num, batch_num=batch_num)
+        hidden2 = tf.concat([hidden0, hidden1], axis=-1)
+        lstm_out, lstm_state, initial_state = openai_lstm('lstm_ac', hidden2, dones_ph=dones_ph, states_ph=states_ph, units=LSTM_UNITS, env_num=env_num, batch_num=batch_num)
         value = tf.layers.dense(inputs=lstm_out, units=1, activation=None)
         if continuous:
             mu = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=tf.nn.tanh)
             var = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=tf.nn.softplus)
-            return mu, var, value, states_ph, dones_ph, lstm_state, initial_state
+            return mu, var, value, states_ph, vels_ph, dones_ph, lstm_state, initial_state
         else:
             logits = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=None)
-            return logits, value, states_ph, dones_ph, lstm_state, initial_state
+            return logits, value, states_ph, vels_ph, dones_ph, lstm_state, initial_state
+
+
+def animal_a2c_network_lstm2(name, inputs, actions_num, env_num, batch_num, vels_ph, continuous=False, reuse=False):
+    with tf.variable_scope(name, reuse=reuse):
+        NUM_HIDDEN_NODES = 512
+        LSTM_UNITS = 256
+        conv3 = animal_conv_residual(inputs, depths = [16,32,64,128])
+        flatten = tf.contrib.layers.flatten(inputs = conv3)
+
+        hidden0 = tf.layers.dense(inputs=vels_ph, units=32, activation=tf.nn.elu)
+        hidden1 = tf.layers.dense(inputs=flatten, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
+
+        
+        dones_ph = tf.placeholder(tf.bool, [batch_num])
+        states_ph = tf.placeholder(tf.float32, [env_num, 2*LSTM_UNITS])
+        hidden2 = tf.concat([hidden0, hidden1], axis=-1)
+        lstm_out, lstm_state, initial_state = openai_lstm('lstm_ac', hidden2, dones_ph=dones_ph, states_ph=states_ph, units=LSTM_UNITS, env_num=env_num, batch_num=batch_num)
+        value = tf.layers.dense(inputs=lstm_out, units=1, activation=None)
+        if continuous:
+            mu = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=tf.nn.tanh)
+            var = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=tf.nn.softplus)
+            return mu, var, value, states_ph, vels_ph, dones_ph, lstm_state, initial_state
+        else:
+            logits = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=None)
+            return logits, value, states_ph, vels_ph, dones_ph, lstm_state, initial_state

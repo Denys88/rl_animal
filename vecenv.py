@@ -73,4 +73,4 @@ def create_vec_env(config_name, num_actors):
     if configurations[config_name]['VECENV_TYPE'] == 'ISAAC':
         return IsaacEnv(config_name, num_actors)
     if configurations[config_name]['VECENV_TYPE'] == 'ANIMAL':
-        return create_animal(num_actors)
+        return create_animal(num_actors, inference=False)
