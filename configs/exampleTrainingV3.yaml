@@ -9,6 +9,8 @@ arenas:
       - !Vector3 {x: 1, y: 1, z: 1}
     - !Item
       name: DeathZone
+    - !Item
+      name: Ramp
   1: !Arena
     t: 250
     items:
@@ -46,6 +48,8 @@ arenas:
     - !Item
       name: Ramp
     - !Item
+      name: Ramp
+    - !Item
       name: Wall
   4: !Arena
     t: 250
@@ -63,11 +67,7 @@ arenas:
     t: 250
     items:
     - !Item
-      name: GoodGoal
-    - !Item
       name: GoodGoalMulti
-    - !Item
-      name: BadGoal
     - !Item
       name: Ramp
     - !Item
@@ -143,8 +143,6 @@ arenas:
     - !Item
       name: GoodGoal
     - !Item
-      name: GoodGoalMulti
-    - !Item
       name: BadGoal
     - !Item
       name: Wall
@@ -154,18 +152,18 @@ arenas:
     t: 250
     items:
     - !Item
-      name: GoodGoalBounce
+      name: GoodGoal
       sizes:
       - !Vector3 {x: 1, y: 1, z: 1}
     - !Item
       name: DeathZone
     - !Item
-      name: Wall
+      name: HotZone
   12: !Arena
     t: 250
     items:
     - !Item
-      name: GoodGoalBounce
+      name: GoodGoal
       sizes:
       - !Vector3 {x: 1, y: 1, z: 1}
     - !Item
@@ -176,45 +174,41 @@ arenas:
     t: 250
     items:
     - !Item
-      name: CylinderTunnel
+      name: GoodGoalMulti
+      sizes:
+      - !Vector3 {x: 1, y: 1, z: 1}
+      - !Vector3 {x: 1, y: 1, z: 1}
     - !Item
       name: Ramp
+      colors:
+      - !RGB {r: 255, g: 0, b: 255}
+      - !RGB {r: 255, g: 0, b: 255}
+      - !RGB {r: 255, g: 0, b: 255}
     - !Item
       name: Wall
-    - !Item
-      name: WallTransparent
-    - !Item
-      name: Cardbox1
-    - !Item
-      name: Cardbox2
-    - !Item
-      name: Cylinder
-    - !Item
-      name: UObject
-    - !Item
-      name: GoodGoalBounce
-    - !Item
-      name: BadGoal
-    - !Item
-      name: BadGoalBounce
-    - !Item
-      name: GoodGoalMulti
-    - !Item
-      name: GoodGoalMultiBounce
-    - !Item
-      name: DeathZone
-    - !Item
-      name: HotZone
+      colors:
+      - !RGB {r: 153, g: 153, b: 153}
+      - !RGB {r: 153, g: 153, b: 153}
+      - !RGB {r: 153, g: 153, b: 153}
   14: !Arena
     t: 250
     items:
     - !Item
-      name: GoodGoal
+      name: GoodGoalMulti
       sizes:
       - !Vector3 {x: 1, y: 1, z: 1}
+      - !Vector3 {x: 1, y: 1, z: 1}
+    - !Item
+      name: Ramp
+      colors:
+      - !RGB {r: 255, g: 0, b: 255}
+      - !RGB {r: 255, g: 0, b: 255}
+      - !RGB {r: 255, g: 0, b: 255}
     - !Item
       name: Wall
       colors:
+      - !RGB {r: 153, g: 153, b: 153}
+      - !RGB {r: 153, g: 153, b: 153}
       - !RGB {r: 153, g: 153, b: 153}
   15: !Arena
     t: 250
@@ -231,39 +225,17 @@ arenas:
     t: 250
     items:
     - !Item
-      name: CylinderTunnel
-    - !Item
-      name: Ramp
+      name: GoodGoal
+      sizes:
+      - !Vector3 {x: 1, y: 1, z: 1}
     - !Item
       name: Wall
+      colors:
+      - !RGB {r: 153, g: 153, b: 153}
     - !Item
-      name: WallTransparent
-    - !Item
-      name: Cardbox1
-    - !Item
-      name: Cardbox2
-    - !Item
-      name: Cylinder
-    - !Item
-      name: UObject
-    - !Item
-      name: LObject
-    - !Item
-      name: GoodGoal
-    - !Item
-      name: GoodGoalBounce
-    - !Item
-      name: BadGoal
-    - !Item
-      name: BadGoalBounce
-    - !Item
-      name: GoodGoalMulti
-    - !Item
-      name: GoodGoalMultiBounce
-    - !Item
-      name: DeathZone
-    - !Item
-      name: HotZone
+      name: Wall
+      colors:
+      - !RGB {r: 153, g: 153, b: 153}
   17: !Arena
     t: 250
     items:
@@ -282,13 +254,11 @@ arenas:
       name: Wall
     - !Item
       name: Wall
-    - !Item
-      name: Wall
   18: !Arena
     t: 250
     items:
     - !Item
-      name: GoodGoalBounce
+      name: GoodGoal
       sizes:
       - !Vector3 {x: 1, y: 1, z: 1}
     - !Item
@@ -313,8 +283,6 @@ arenas:
     items:
     - !Item
       name: GoodGoal
-      sizes:
-      - !Vector3 {x: 1, y: 1, z: 1}
     - !Item
       name: Wall
     - !Item
@@ -324,8 +292,6 @@ arenas:
     items:
     - !Item
       name: GoodGoal
-      sizes:
-      - !Vector3 {x: 1, y: 1, z: 1}
     - !Item
       name: Wall
     - !Item

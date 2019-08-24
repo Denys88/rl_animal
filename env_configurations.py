@@ -14,7 +14,7 @@ def create_animal(num_actors=1, inference = True, config=None, seed=None):
     from animalai_wrapper import AnimalWrapper, AnimalStack, AnimalSkip
     env_path = 'AnimalAI'
     worker_id = random.randint(1, 1000)
-    arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/exampleTrainingV3.yaml')
+    arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/exampleTrainingV4.yaml')
     #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/7-InternalMemory.yaml')
     #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/objectManipulation.yaml')
     #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/movingFood.yaml')
@@ -39,7 +39,7 @@ def create_animal(num_actors=1, inference = True, config=None, seed=None):
                       docker_training=False,
                       inference = inference,
                       retro=False,
-                      resolution=96
+                      resolution=84
                       )
     env = AnimalSkip(env, skip=1)                  
     env = AnimalWrapper(env)

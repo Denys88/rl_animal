@@ -12,8 +12,8 @@ class Agent(object):
          Load your agent here and initialize anything needed
         """
         print('init1')
-        self.resolution = 96
-        self.model_path = '/aaio/data/last96_an12'
+        self.resolution = 84
+        self.model_path = '/aaio/data/last84_an15'
         a2c_config = games_configurations.animal_ai
         tf_config = tf.ConfigProto(
         device_count = {'GPU': 0}

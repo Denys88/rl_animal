@@ -24,7 +24,7 @@ class PpoPlayerDiscrete(BasePlayer):
     def __init__(self, sess, config):
         BasePlayer.__init__(self, sess, config)
         self.network = config['NETWORK']
-        self.obs_ph = tf.placeholder('float32', (None, 96, 96, 6 ), name = 'obs')
+        self.obs_ph = tf.placeholder('float32', (None, 84, 84, 6 ), name = 'obs')
         self.actions_num = 9
         self.mask = [False]
         self.epoch_num = tf.Variable( tf.constant(0, shape=(), dtype=tf.float32), trainable=False)#, name = 'epochs')
@@ -42,7 +42,7 @@ class PpoPlayerDiscrete(BasePlayer):
         }
         self.last_state = None
         if self.network.is_rnn():
-            _ ,_, self.action, _,self.states_ph, self.masks_ph, self.lstm_state, self.initial_state = self.network(self.run_dict, reuse=False)
+            self.logits, _ ,_, self.action, _,self.states_ph, self.masks_ph, self.lstm_state, self.initial_state = self.network(self.run_dict, reuse=False)
             self.last_state = self.initial_state
         else:
             _ ,_, self.action,  _  = self.network(self.run_dict, reuse=False)
@@ -54,12 +54,11 @@ class PpoPlayerDiscrete(BasePlayer):
         #if is_determenistic:
         ret_action = self.action
 
-        if self.network.is_rnn():
-            action, self.last_state = self.sess.run([ret_action, self.lstm_state], {self.obs_ph : [obs[0]], self.vec_ph : [obs[1]], self.states_ph : self.last_state, self.masks_ph : self.mask})
+        logits, action, self.last_state = self.sess.run([self.logits, ret_action, self.lstm_state], {self.obs_ph : [obs[0]], self.vec_ph : [obs[1]], self.states_ph : self.last_state, self.masks_ph : self.mask})
+        if is_determenistic:
+            return int(np.argmax(np.squeeze(logits)))
         else:
-            action = self.sess.run([ret_action], {self.obs_ph : [obs[0]], self.vec_ph : [obs[1]]})
-
-        return int(np.squeeze(action))
+            return int(np.squeeze(action))
 
     def restore(self, fn):
         self.saver.restore(self.sess, fn)

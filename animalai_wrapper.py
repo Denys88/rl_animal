@@ -38,6 +38,9 @@ class AnimalStack(gym.Wrapper):
     def __init__(self, env, k):
         gym.Wrapper.__init__(self, env)
         self.k = k
+        self.black_prob = 0.000
+        self.max_black_frames = 15
+        self.curr_frame = 0
         self.frames = deque([], maxlen=k)
         self.vel_info = deque([], maxlen=k) 
         shp = env.observation_space.shape
@@ -46,6 +49,7 @@ class AnimalStack(gym.Wrapper):
 
     def reset(self, config = None):
         frames, vel = self.env.reset(config)
+
         for _ in range(self.k):
             self.frames.append(frames)
             self.vel_info.append(vel)
@@ -53,7 +57,16 @@ class AnimalStack(gym.Wrapper):
 
     def step(self, action):
         ob, reward, done, info = self.env.step(action)
-        self.frames.append(ob[0])
+        frames = ob[0]
+        if self.curr_frame == 0:
+            if np.random.rand() <= self.black_prob:
+                self.curr_frame = np.random.randint(1, self.max_black_frames)
+                print('started black:', self.curr_frame)
+
+        if self.curr_frame > 0:
+            self.curr_frame = self.curr_frame - 1
+            frames = frames * 0.0
+        self.frames.append(frames)
         self.vel_info.append(ob[1])
         return self._get_ob(), reward, done, info
 

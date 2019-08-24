@@ -9,11 +9,11 @@ animal_ai = {
     'NETWORK' : models.LSTMModelA2C(networks.animal_a2c_network_lstm2),
     'REWARD_SHAPER' : tr_helpers.DefaultRewardsShaper(scale_value = 1.0),
     'NORMALIZE_ADVANTAGE' : True,
-    'LEARNING_RATE' : 3e-5,
+    'LEARNING_RATE' : 5e-5,
     'NAME' : 'pong',
     'SCORE_TO_WIN' : 100500,
     'GRAD_NORM' : 0.5,
-    'ENTROPY_COEF' : 0.0025,
+    'ENTROPY_COEF' : 0.004,
     'TRUNCATE_GRADS' : True,
     'ENV_NAME' : 'AnimalAI',
     'PPO' : True,
@@ -27,5 +27,5 @@ animal_ai = {
     'LR_SCHEDULE' : 'NONE',
     'NORMALIZE_INPUT' : False,
     'SEQ_LEN' : 8,
-    'MAX_EPOCHS' : 6000
+    'MAX_EPOCHS' : 12000
 }
