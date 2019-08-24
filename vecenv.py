@@ -45,22 +45,30 @@ class RayVecEnv(IVecEnv):
         self.workers = [self.remote_worker.remote(self.config_name) for i in range(self.num_actors)]
 
     def step(self, actions):
-        newobs, newrewards, newdones, newinfos = [], [], [], []
+        newobs0, newobs1, newrewards, newdones, newinfos = [], [], [], [], []
         res_obs = []
         for (action, worker) in zip(actions, self.workers):
             res_obs.append(worker.step.remote(action))
         for res in res_obs:
             cobs, crewards, cdones, cinfos = ray.get(res)
-            newobs.append(cobs)
+            newobs0.append(cobs[0])
+            newobs1.append(cobs[1])
             newrewards.append(crewards)
             newdones.append(cdones)
             newinfos.append(cinfos)
 
-        return np.asarray(newobs), np.asarray(newrewards), np.asarray(newdones, dtype=np.bool), np.asarray(newinfos)
+        return [np.asarray(newobs0), newobs1], np.asarray(newrewards), np.asarray(newdones, dtype=np.bool), np.asarray(newinfos)
 
     def reset(self):
         obs = [worker.reset.remote() for worker in self.workers]
-        return np.asarray(ray.get(obs), dtype=np.float32)
+        obs_res = ray.get(obs)
+
+        newobs0, newobs1 = [], []
+        for obses in obs_res:
+            newobs0.append(obses[0])
+            newobs1.append(obses[1])
+
+        return [np.asarray(newobs0, dtype=np.float32), np.asarray(newobs1, dtype=np.float32)]
 
 
 
