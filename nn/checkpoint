@@ -1,3 +1,2 @@
-model_checkpoint_path: "last84_an15"
-all_model_checkpoint_paths: "animal84AnimalAI"
-all_model_checkpoint_paths: "last84_an15"
+model_checkpoint_path: "animal84AnimalAIRay"
+all_model_checkpoint_paths: "animal84AnimalAIRay"

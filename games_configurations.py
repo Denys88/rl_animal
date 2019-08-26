@@ -29,3 +29,30 @@ animal_ai = {
     'SEQ_LEN' : 8,
     'MAX_EPOCHS' : 12000
 }
+
+animal_ai_ray = {
+    'GAMMA' : 0.99,
+    'TAU' : 0.9,
+    'NETWORK' : models.LSTMModelA2C(networks.animal_a2c_network_lstm2),
+    'REWARD_SHAPER' : tr_helpers.DefaultRewardsShaper(scale_value = 1.0),
+    'NORMALIZE_ADVANTAGE' : True,
+    'LEARNING_RATE' : 1e-4,
+    'NAME' : 'pong',
+    'SCORE_TO_WIN' : 100500,
+    'GRAD_NORM' : 0.5,
+    'ENTROPY_COEF' : 0.01,
+    'TRUNCATE_GRADS' : True,
+    'ENV_NAME' : 'AnimalAIRay',
+    'PPO' : True,
+    'E_CLIP' : 0.2,
+    'NUM_ACTORS' : 24,
+    'STEPS_NUM' : 32,
+    'MINIBATCH_SIZE' : 384,
+    'MINI_EPOCHS' : 2,
+    'CRITIC_COEF' : 1.0,
+    'CLIP_VALUE' : True,
+    'LR_SCHEDULE' : 'NONE',
+    'NORMALIZE_INPUT' : False,
+    'SEQ_LEN' : 8,
+    'MAX_EPOCHS' : 12000
+}

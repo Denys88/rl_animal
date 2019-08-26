@@ -1,0 +1,14 @@
+!ArenaConfig
+  0: !Arena
+    t: 500
+    items:
+    - !Item
+      name: GoodGoalMulti
+    - !Item
+      name: Wall
+      colors:
+      - !RGB {r: 153, g: 153, b: 153}
+    - !Item
+      name: Wall
+      colors:
+      - !RGB {r: 153, g: 153, b: 153}

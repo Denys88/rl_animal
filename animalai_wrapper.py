@@ -139,8 +139,7 @@ class AnimalWrapper(gym.Wrapper):
         shape = np.shape(ob0)
         if shape[0] == 1:
             ob0 = np.squeeze(ob0, axis = 0)
-            print(np.shape(ob0))
-        return [ob0, np.asarray(ob[1], dtype=np.float32)]
+        return [ob0, np.asarray(ob[1], dtype=np.float32)/[16.0, 4.0, 16.0]]
 
     def render(self, mode='rgb_array'):
         return np.asarray(self.env.env.visual_obs * 255.0, dtype=np.uint8)

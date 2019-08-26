@@ -21,7 +21,7 @@ class BasePlayer(object):
 
 
     def create_env(self):
-        return env_configurations.configurations[self.env_name]['ENV_CREATOR']()
+        return env_configurations.configurations[self.env_name]['ENV_CREATOR'](inference=True)
 
     def get_action(self, obs, is_determenistic = False):
         raise NotImplementedError('step')
@@ -126,21 +126,6 @@ class PpoPlayerDiscrete(BasePlayer):
         self.sess.run(tf.global_variables_initializer())
 
 
-
-    def preproc_images(self, input):
-        rgb0 = input[:,:,:,0:3]
-        rgb1 = input[:,:,:,3:6]
-        rgb2 = input[:,:,:,6:9]
-        rgb3 = input[:,:,:,9:12] #this one is original
-        
-        gray0 = tf.image.rgb_to_grayscale(rgb0)
-        gray1 = tf.image.rgb_to_grayscale(rgb1)
-        gray2 = tf.image.rgb_to_grayscale(rgb2)
-        res = tf.concat([rgb3, gray0, gray1, gray2], axis = -1)
-        
-        print('grey_atatat')
-        print(res.get_shape().as_list())
-        return res
 
     def get_action(self, obs, is_determenistic = False):
         #if is_determenistic:

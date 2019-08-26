@@ -70,7 +70,47 @@ class RayVecEnv(IVecEnv):
 
         return [np.asarray(newobs0, dtype=np.float32), np.asarray(newobs1, dtype=np.float32)]
 
+class RayVecEnv2(IVecEnv):
+    def __init__(self, config_name, num_actors):
+        self.config_name = config_name
+        self.num_actors = num_actors
+        self.remote_worker = ray.remote(RayWorker)
+        self.workers = [self.remote_worker.remote(self.config_name) for i in range(self.num_actors)]
+        self.envs_in = 2
 
+    def step(self, actions):
+        newobs0, newobs1, newrewards, newdones, newinfos = None, None, [], [], []
+        res_obs = []
+        for i in range(self.num_actors):
+            res_obs.append(self.workers[i].step.remote(actions[self.envs_in * i : self.envs_in * (i+1)]))
+        for res in res_obs:
+            cobs, crewards, cdones, cinfos = ray.get(res)
+            if newobs0 is None:
+                newobs0 = cobs[0]
+                newobs1 = cobs[1]
+            else:
+                newobs0 = np.vstack([newobs0, cobs[0]])
+                newobs1 = np.vstack([newobs1, cobs[1]])
+            newrewards.append(crewards)
+            newdones.append(cdones)
+            newinfos.append(cinfos)
+
+        return [np.asarray(newobs0), newobs1], np.asarray(newrewards).flatten(), np.asarray(newdones, dtype=np.bool).flatten(), np.asarray(newinfos)
+
+    def reset(self):
+        obs = [worker.reset.remote() for worker in self.workers]
+        obs_res = ray.get(obs)
+
+        newobs0, newobs1 = None, None
+        for cobs in obs_res:
+            if newobs0 is None:
+                newobs0 = cobs[0]
+                newobs1 = cobs[1]
+            else:
+                newobs0 = np.vstack([newobs0, cobs[0]])
+                newobs1 = np.vstack([newobs1, cobs[1]])
+
+        return [np.asarray(newobs0, dtype=np.float32), np.asarray(newobs1, dtype=np.float32)]
 
 
     

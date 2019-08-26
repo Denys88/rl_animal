@@ -1,0 +1,12 @@
+!ArenaConfig
+arenas:
+  0: !Arena
+    t: 500
+    items:
+    - !Item
+      name: GoodGoal
+    - !Item
+      name: Wall
+    - !Item
+      name: Wall
+      colors:

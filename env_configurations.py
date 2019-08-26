@@ -13,15 +13,15 @@ def create_animal(num_actors=1, inference = True, config=None, seed=None):
     import wrappers
     from animalai_wrapper import AnimalWrapper, AnimalStack, AnimalSkip
     env_path = 'AnimalAI'
-    worker_id = random.randint(1, 1000)
-    arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/exampleTrainingV4.yaml')
+    worker_id = random.randint(1, 60000)
+    #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/exampleTrainingV4.yaml')
     #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/7-InternalMemory.yaml')
     #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/objectManipulation.yaml')
     #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/movingFood.yaml')
     #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/6-Generalization.yaml')
     #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/5-SpatialReasoning.yaml')
     #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/3-Obstacles.yaml')
-    #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/1-Food.yaml')
+    arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/1-Food.yaml')
     #arena_config_in = ArenaConfig('/home/trrrrr/Documents/github/ml/rl_animal/configs/4-Avoidance.yaml')
     if config is None:
         config = arena_config_in
@@ -51,6 +51,10 @@ configurations = {
     'AnimalAI' : {
         'ENV_CREATOR' : lambda : create_animal(),
         'VECENV_TYPE' : 'ANIMAL'
+    },
+    'AnimalAIRay' : {
+        'ENV_CREATOR' : lambda inference=False: create_animal(1, inference),
+        'VECENV_TYPE' : 'RAY'
     },
 
 }

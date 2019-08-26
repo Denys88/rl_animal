@@ -198,6 +198,28 @@ def residual_block(inputs, name):
     out = tf.layers.conv2d(out, depth, 3, padding='same', name='res2_' + name)
     return out + inputs
 
+
+def residual_block_fixup(inputs, num_layers, name):
+    depth = inputs.get_shape()[-1].value
+    stddev = np.sqrt(2.0/(inputs.get_shape()[1].value * inputs.get_shape()[2].value * inputs.get_shape()[3].value * num_layers))
+
+    bias0 = tf.get_variable(name + "/bias0", [], initializer=tf.zeros_initializer())
+    bias1 = tf.get_variable(name + "/bias1", [], initializer=tf.zeros_initializer())
+    bias2 = tf.get_variable(name + "/bias2", [], initializer=tf.zeros_initializer())
+    bias3 = tf.get_variable(name + "/bias3", [], initializer=tf.zeros_initializer())
+
+    multiplier = tf.get_variable(name + "/multiplier", [], initializer=tf.ones_initializer())
+    out = tf.nn.relu(inputs)
+    out = out + bias0
+    out = tf.layers.conv2d(out, depth, 3, padding='same', name='res1/' + name, use_bias = False, kernel_initializer=tf.truncated_normal_initializer(stddev=stddev))
+    out = out + bias1
+    out = tf.nn.relu(out)
+    out = out + bias2
+    out = tf.layers.conv2d(out, depth, 3, padding='same', name='res2/' + name, use_bias = False, kernel_initializer=tf.zeros_initializer())
+    out = out * multiplier + bias3
+
+    return out + inputs
+
 def animal_conv_residual(inputs, depths = [16,32,32,64]):
     
     out = inputs
@@ -212,6 +234,19 @@ def animal_conv_residual(inputs, depths = [16,32,32,64]):
     out = tf.nn.relu(out)
     return out
 
+
+def animal_conv_residual_fixup(inputs, depths = [16,32,32,64]):
+    out = inputs
+    i = 0
+    for depth in depths:
+        i = i + 1
+        out = tf.layers.conv2d(out, depth, 3, padding='same', name='layer_' + str(i))
+        out = tf.layers.max_pooling2d(out, pool_size=3, strides=2, padding='same')
+        out = residual_block_fixup(out, i, name='rb1' + str(i))
+        out = residual_block_fixup(out, i, name='rb2' + str(i))
+        print('shapes of layer_' + str(i), str(out.get_shape().as_list()))
+    out = tf.nn.relu(out)
+    return out
 
 def animal_a2c_network(name, inputs, actions_num, continuous=False, reuse=False):
     with tf.variable_scope(name, reuse=reuse):
@@ -259,7 +294,7 @@ def animal_a2c_network_lstm2(name, inputs, actions_num, env_num, batch_num, vels
     with tf.variable_scope(name, reuse=reuse):
         NUM_HIDDEN_NODES = 512
         LSTM_UNITS = 256
-        conv3 = animal_conv_residual(inputs, depths = [16,32,64,128])
+        conv3 = animal_conv_residual_fixup(inputs, depths = [16,32,64,128])
         flatten = tf.contrib.layers.flatten(inputs = conv3)
 
         hidden0 = tf.layers.dense(inputs=vels_ph, units=32, activation=tf.nn.elu)
