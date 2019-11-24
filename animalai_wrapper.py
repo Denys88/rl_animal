@@ -3,7 +3,7 @@ import numpy as np
 from gym import spaces
 from collections import deque
 import cv2
-from hyperparams import VEC_SCALE, BLACK_PROBABILITY, MIN_BLACK_FRAMES, MAX_BLACK_FRAMES, REWARD_RAMPS
+import hyperparams as hps
 
 
 
@@ -16,13 +16,13 @@ def calc_rewards_v1(reward):
         reward = 4
     return reward
 
-def calc_rewards_v2(reward, vel, penalize_back = BACK_MOVE_PENALTY, reward_up = REWARD_RAMPS):
+def calc_rewards_v2(reward, vel, penalize_back = hps.BACK_MOVE_PENALTY, reward_up = hps.REWARD_RAMPS):
     if reward > 0.1:
         reward += 0.5
     if reward_up and vel[1] > 0.01:
-        reward += vel[1] * RAMPS_COEF
+        reward += vel[1] * hps.RAMPS_COEF
     if penalize_back and vel[2] < 0:
-        reward += vel[2] * BACK_MOVE_COEF
+        reward += vel[2] * hps.BACK_MOVE_COEF
 
     return reward
 
@@ -75,8 +75,8 @@ class AnimalStack(gym.Wrapper):
         gym.Wrapper.__init__(self, env)
         self.k = k
         self.k_vels = k_vels
-        self.black_prob = BLACK_PROBABILITY
-        self.max_black_frames = MAX_BLACK_FRAMES - MIN_BLACK_FRAMES
+        self.black_prob = hps.BLACK_PROBABILITY
+        self.max_black_frames = hps.MAX_BLACK_FRAMES - hps.MIN_BLACK_FRAMES
         self.curr_frame = 0
         self.frames = deque([], maxlen=k)
         self.vel_info = deque([], maxlen=k_vels)
@@ -134,7 +134,7 @@ class AnimalStack(gym.Wrapper):
         
         if self.curr_frame == 0:
             if np.random.rand() <= self.black_prob:
-                self.curr_frame = np.random.randint(1, self.max_black_frames) + MIN_BLACK_FRAMES
+                self.curr_frame = np.random.randint(1, self.max_black_frames) + hps.MIN_BLACK_FRAMES
                 print('started black:', self.curr_frame)
 
         if self.curr_frame > 0:
@@ -220,7 +220,7 @@ class AnimalWrapper(gym.Wrapper):
         shape = np.shape(ob0)
         if shape[0] == 1:
             ob0 = np.squeeze(ob0, axis = 0)
-        return [ob0, np.asarray(ob[1], dtype=np.float32)/VEC_SCALE]
+        return [ob0, np.asarray(ob[1], dtype=np.float32)/hps.VEC_SCALE]
 
     def render(self, mode='rgb_array'):
         return np.asarray(self.env.env.visual_obs * 255.0, dtype=np.uint8)
@@ -234,4 +234,4 @@ class AnimalWrapper(gym.Wrapper):
         if shape[0] == 1:
             ob0 = np.squeeze(ob0, axis = 0)
 
-        return [ ob0, np.asarray(ob[1], dtype=np.float32)/VEC_SCALE], np.asarray(reward), np.asarray(done, dtype=np.bool), np.asarray(info)
+        return [ ob0, np.asarray(ob[1], dtype=np.float32)/hps.VEC_SCALE], np.asarray(reward), np.asarray(done, dtype=np.bool), np.asarray(info)
