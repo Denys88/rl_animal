@@ -1,0 +1,21 @@
+!ArenaConfig
+arenas:
+  0: !Arena
+    t: 0
+    items:
+    - !Item
+      name: GoodGoalMulti
+    - !Item
+      name: GoodGoal
+    - !Item
+      name: Ramp
+    - !Item
+      name: Ramp
+    - !Item
+      name: Ramp
+    - !Item
+      name: Wall
+    - !Item
+      name: Wall
+    - !Item
+      name: WallTransparent

@@ -19,18 +19,43 @@ class BasePlayer(object):
         raise NotImplementedError('raise')
 
 
+'''
+'/aaio/data/last84_8_color_b_0001'
+seed = 33 
+score = 42.66
+
+'/aaio/data/last84_8_color_b_0001'
+seed = 42 
+score = 41.66
+
+'/aaio/data/last84_9_4'
+seed = 44 
+score = 41.33
+'''
+
+def softmax(x):
+    """Compute softmax values for each sets of scores in x."""
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum()
+    
+def choose(logits):
+    p = softmax(logits)
+    return np.squeeze(np.random.choice(len(p),1 , p=p))
 
 class PpoPlayerDiscrete(BasePlayer):
     def __init__(self, sess, config):
         BasePlayer.__init__(self, sess, config)
+ 
+
+
         self.network = config['NETWORK']
-        self.obs_ph = tf.placeholder('float32', (None, 84, 84, 6 ), name = 'obs')
+        self.obs_ph = tf.placeholder('uint8', (None, 84, 84, 6 ), name = 'obs')
         self.actions_num = 9
         self.mask = [False]
         self.epoch_num = tf.Variable( tf.constant(0, shape=(), dtype=tf.float32), trainable=False)#, name = 'epochs')
         self.input_obs = self.obs_ph
-
-        self.vec_ph = tf.placeholder(tf.float32, [1, 6])
+        self.input_obs = tf.to_float(self.input_obs) / 255.0
+        self.vec_ph = tf.placeholder(tf.float32, [1, 8])
         self.run_dict = {
             'name' : 'agent',
             'inputs' : self.input_obs,
@@ -58,7 +83,7 @@ class PpoPlayerDiscrete(BasePlayer):
         if is_determenistic:
             return int(np.argmax(np.squeeze(logits)))
         else:
-            return int(np.squeeze(action))
+            return int(choose(np.squeeze(logits))) #int(np.squeeze(action))
 
     def restore(self, fn):
         self.saver.restore(self.sess, fn)

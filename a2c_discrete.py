@@ -84,12 +84,12 @@ class A2CAgent:
         self.sess = sess
         self.grad_norm = config['GRAD_NORM']
         self.gamma = self.config['GAMMA']
-        self.tau = self.config['TAU']
+        self.lam = self.config['LAMBDA']
         self.dones = np.asarray([False]*self.num_actors, dtype=np.bool)
         self.current_rewards = np.asarray([0]*self.num_actors, dtype=np.float32)  
-        self.game_rewards = deque([], maxlen=100)
-        self.obs_ph = tf.placeholder('float32', (None, ) + self.state_shape, name = 'obs')
-        self.target_obs_ph = tf.placeholder('float32', (None, ) + self.state_shape, name = 'target_obs') 
+        self.game_rewards = deque([], maxlen=1000)
+        self.obs_ph = tf.placeholder('uint8', (None, ) + self.state_shape, name = 'obs')
+        self.target_obs_ph = tf.placeholder('uint8', (None, ) + self.state_shape, name = 'target_obs') 
         self.actions_num = action_space.n   
         self.actions_ph = tf.placeholder('int32', (None,), name = 'actions')       
 
@@ -120,15 +120,14 @@ class A2CAgent:
             self.input_obs = self.obs_ph
             self.input_target_obs = self.target_obs_ph
         
-        # TODO I can do better here
-        #self.input_obs = self.preproc_images(self.input_obs)
-        #self.input_target_obs = self.preproc_images(self.input_target_obs)
+        self.input_obs = tf.to_float(self.input_obs) / 255.0
+        self.input_target_obs = tf.to_float(self.input_target_obs) / 255.0
 
         games_num = self.config['MINIBATCH_SIZE'] // self.seq_len # it is used only for current rnn implementation
 
-
-        self.vels_ph = tf.placeholder(tf.float32, [self.config['MINIBATCH_SIZE'], 6])
-        self.target_vels_ph = tf.placeholder(tf.float32, [self.num_actors, 6])
+        self.num_vel_inputs = 2 * 4
+        self.vels_ph = tf.placeholder(tf.float32, [self.config['MINIBATCH_SIZE'], self.num_vel_inputs])
+        self.target_vels_ph = tf.placeholder(tf.float32, [self.num_actors, self.num_vel_inputs])
 
         self.train_dict = {
             'name' : 'agent',
@@ -152,21 +151,21 @@ class A2CAgent:
 
         self.states = None
         if self.network.is_rnn():
-            self.logp_actions ,self.state_values, self.action, self.entropy, self.states_ph, self.masks_ph, self.lstm_state, self.initial_state = self.network(self.train_dict, reuse=False)
+            self.neglogp_actions ,self.state_values, self.action, self.entropy, self.states_ph, self.masks_ph, self.lstm_state, self.initial_state = self.network(self.train_dict, reuse=False)
             self.target_neglogp, self.target_state_values, self.target_action, _,  self.target_states_ph, self.target_masks_ph, self.target_lstm_state, self.target_initial_state = self.network(self.run_dict, reuse=True)
             self.states = self.target_initial_state
         else:
-            self.logp_actions ,self.state_values, self.action, self.entropy = self.network(self.train_dict, reuse=False)
+            self.neglogp_actions ,self.state_values, self.action, self.entropy = self.network(self.train_dict, reuse=False)
             self.target_neglogp, self.target_state_values, self.target_action, _ = self.network(self.run_dict, reuse=True)
 
         curr_e_clip = self.e_clip * self.lr_multiplier
         if (self.ppo):
-            self.prob_ratio = tf.exp(self.old_logp_actions_ph - self.logp_actions)
+            self.prob_ratio = tf.exp(self.old_logp_actions_ph - self.neglogp_actions)
             self.pg_loss_unclipped = -tf.multiply(self.advantages_ph, self.prob_ratio)
             self.pg_loss_clipped = -tf.multiply(self.advantages_ph, tf.clip_by_value(self.prob_ratio, 1.- curr_e_clip, 1.+ curr_e_clip))
             self.actor_loss = tf.reduce_mean(tf.maximum(self.pg_loss_unclipped, self.pg_loss_clipped))
         else:
-            self.actor_loss = tf.reduce_mean(self.logp_actions * self.advantages_ph)
+            self.actor_loss = tf.reduce_mean(self.neglogp_actions * self.advantages_ph)
 
 
         self.c_loss = (tf.squeeze(self.state_values) - self.rewards_ph)**2
@@ -177,10 +176,10 @@ class A2CAgent:
         else:
             self.critic_loss = tf.reduce_mean(self.c_loss)
         
-        self.kl_approx = 0.5 * tf.stop_gradient(tf.reduce_mean((self.old_logp_actions_ph - self.logp_actions)**2))
+        self.kl_approx = 0.5 * tf.stop_gradient(tf.reduce_mean((self.old_logp_actions_ph - self.neglogp_actions)**2))
 
-
-        self.loss = self.actor_loss + 0.5 * self.critic_coef * self.critic_loss - self.config['ENTROPY_COEF'] * self.entropy
+        entropy_coef = self.config['ENTROPY_COEF'] * self.lr_multiplier 
+        self.loss = self.actor_loss + 0.5 * self.critic_coef * self.critic_loss -  entropy_coef * self.entropy
         
         self.train_step = tf.train.AdamOptimizer(self.current_lr * self.lr_multiplier)
         self.weights = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, scope='agent')
@@ -192,21 +191,6 @@ class A2CAgent:
         self.train_op = self.train_step.apply_gradients(grads)
         self.saver = tf.train.Saver()
         self.sess.run(tf.global_variables_initializer())
-
-    def preproc_images(self, input):
-        rgb0 = input[:,:,:,0:3]
-        rgb1 = input[:,:,:,3:6]
-        rgb2 = input[:,:,:,6:9]
-        rgb3 = input[:,:,:,9:12] #this one is original
-        
-        gray0 = tf.image.rgb_to_grayscale(rgb0)
-        gray1 = tf.image.rgb_to_grayscale(rgb1)
-        gray2 = tf.image.rgb_to_grayscale(rgb2)
-        res = tf.concat([rgb3, gray0, gray1, gray2], axis = -1)
-
-        print('grey_atatat')
-        print(res.get_shape().as_list())
-        return res
 
     def update_epoch(self):
         return self.sess.run([self.update_epoch_op])[0]
@@ -258,13 +242,10 @@ class A2CAgent:
 
             shaped_rewards = self.rewards_shaper(rewards)
             epinfos.append(infos)
-            #add_rewards = self.pos_map.update(self.obs[1][:,[3,5]], self.dones)
-            #add_rewards = add_rewards / 1000.0
-            #shaped_rewards += add_rewards
             mb_rewards.append(shaped_rewards)
 
         #using openai baseline approach
-        mb_obs0 = np.asarray(mb_obs0, dtype=np.float32)
+        mb_obs0 = np.asarray(mb_obs0, dtype=np.uint8)
         mb_obs1 = np.asarray(mb_obs1, dtype=np.float32)
         mb_rewards = np.asarray(mb_rewards, dtype=np.float32)
         mb_actions = np.asarray(mb_actions, dtype=np.float32)
@@ -289,7 +270,7 @@ class A2CAgent:
                 nextvalues = mb_values[t+1]
             
             delta = mb_rewards[t] + self.gamma * nextvalues * nextnonterminal  - mb_values[t]
-            mb_advs[t] = lastgaelam = delta + self.gamma * self.tau * nextnonterminal * lastgaelam
+            mb_advs[t] = lastgaelam = delta + self.gamma * self.lam * nextnonterminal * lastgaelam
 
         mb_returns = mb_advs + mb_values
         if self.network.is_rnn():

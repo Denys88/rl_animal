@@ -1,0 +1,23 @@
+!ArenaConfig
+arenas:
+  0: !Arena
+    t: 250
+    items:
+    - !Item
+      name: GoodGoalMulti
+    - !Item
+      name: Wall
+      sizes:
+      - !Vector3 {x: 1, y: -1, z: 9}
+    - !Item
+      name: Wall
+      sizes:
+      - !Vector3 {x: 1, y: -1, z: 9}
+    - !Item
+      name: Wall
+      sizes:
+      - !Vector3 {x: 1, y: 8, z: 9}
+    - !Item
+      name: Wall
+      sizes:
+      - !Vector3 {x: 1, y: 8, z: 9}

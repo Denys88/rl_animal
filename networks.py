@@ -3,42 +3,6 @@ import numpy as np
 import tensorflow_probability as tfp
 tfd = tfp.distributions
 
-def sample_noise(shape, mean = 0.0, std = 1.0):
-    noise = tf.random_normal(shape, mean = mean, stddev = std)
-    return noise
-
-# Added by Andrew Liao
-# for NoisyNet-DQN (using Factorised Gaussian noise)
-# modified from ```dense``` function
-def noisy_dense(inputs, units, name, bias=True, activation=tf.identity, mean = 0.0, std = 1.0):
-
-    # the function used in eq.7,8
-    def f(x):
-        return tf.multiply(tf.sign(x), tf.pow(tf.abs(x), 0.5))
-    # Initializer of \mu and \sigma 
-    mu_init = tf.random_uniform_initializer(minval=-1*1/np.power(inputs.get_shape().as_list()[1], 0.5),     
-                                                maxval=1*1/np.power(inputs.get_shape().as_list()[1], 0.5))
-    sigma_init = tf.constant_initializer(0.4/np.power(inputs.get_shape().as_list()[1], 0.5))
-    # Sample noise from gaussian
-    p = sample_noise([inputs.get_shape().as_list()[1], 1], mean = 0.0, std = 1.0)
-    q = sample_noise([1, units], mean = 0.0, std = 1.0)
-    f_p = f(p); f_q = f(q)
-    w_epsilon = f_p*f_q; b_epsilon = tf.squeeze(f_q)
-
-    # w = w_mu + w_sigma*w_epsilon
-    w_mu = tf.get_variable(name + "/w_mu", [inputs.get_shape()[1], units], initializer=mu_init)
-    w_sigma = tf.get_variable(name + "/w_sigma", [inputs.get_shape()[1], units], initializer=sigma_init)
-    w = w_mu + tf.multiply(w_sigma, w_epsilon)
-    ret = tf.matmul(inputs, w)
-    if bias:
-        # b = b_mu + b_sigma*b_epsilon
-        b_mu = tf.get_variable(name + "/b_mu", [units], initializer=mu_init)
-        b_sigma = tf.get_variable(name + "/b_sigma", [units], initializer=sigma_init)
-        b = b_mu + tf.multiply(b_sigma, b_epsilon)
-        return activation(ret + b)
-    else:
-        return activation(ret)
-
 def batch_to_seq(h, nbatch, nsteps, flat=False):
     if flat:
         h = tf.reshape(h, [nbatch, nsteps])
@@ -137,7 +101,6 @@ def lnlstm(xs, ms, s, scope, nh, nin):
 
 '''
 used lstm from openai baseline as the most convenient way to work with dones.
-TODO: try to use more efficient tensorflow way
 '''
 def openai_lstm(name, inputs, states_ph, dones_ph, units, env_num, batch_num, layer_norm=True):
     nbatch = batch_num
@@ -162,7 +125,7 @@ def animal_conv_net(inputs):
     NUM_FILTERS_2 = 16
     NUM_FILTERS_3 = 32
     NUM_FILTERS_4 = 64
-    NUM_FILTERS_5 = 512
+
     conv1 = tf.layers.conv2d(inputs=inputs,
                              filters=NUM_FILTERS_1,
                              kernel_size=[5, 5],
@@ -183,11 +146,6 @@ def animal_conv_net(inputs):
                              kernel_size=[3, 3],
                              strides=(2, 2),                           
                              activation=tf.nn.elu)
-    #conv5 = tf.layers.conv2d(inputs=conv4,
-    #                         filters=NUM_FILTERS_5,
-    #                         kernel_size=[3, 3],
-    #                         strides=(1, 1),                           
-    #                         activation=tf.nn.elu)
     return conv4
   
 
@@ -214,6 +172,37 @@ def residual_block_fixup(inputs, num_layers, name):
     out = tf.layers.conv2d(out, depth, 3, padding='same', name='res1/' + name, use_bias = False, kernel_initializer=tf.truncated_normal_initializer(stddev=stddev))
     out = out + bias1
     out = tf.nn.relu(out)
+    out = out + bias2
+    out = tf.layers.conv2d(out, depth, 3, padding='same', name='res2/' + name, use_bias = False, kernel_initializer=tf.zeros_initializer())
+    out = out * multiplier + bias3
+
+    return out + inputs
+
+def channel_attention(inputs, depth):
+    res = tf.reduce_mean(inputs, axis=[1,2])
+    res = tf.reshape(res,[tf.shape(inputs)[0] ,1,1,depth])
+    res = tf.layers.conv2d(res, depth // 4, 1, use_bias = False)
+    res = tf.nn.elu(res)
+    res = tf.layers.conv2d(res, depth, 1, use_bias = False)
+    
+    return tf.nn.sigmoid(res)
+
+def residual_block_fixup_attention(inputs, num_layers, name):
+    depth = inputs.get_shape()[-1].value
+    stddev = np.sqrt(2.0/(inputs.get_shape()[1].value * inputs.get_shape()[2].value * inputs.get_shape()[3].value * num_layers))
+
+    bias0 = tf.get_variable(name + "/bias0", [], initializer=tf.zeros_initializer())
+    bias1 = tf.get_variable(name + "/bias1", [], initializer=tf.zeros_initializer())
+    bias2 = tf.get_variable(name + "/bias2", [], initializer=tf.zeros_initializer())
+    bias3 = tf.get_variable(name + "/bias3", [], initializer=tf.zeros_initializer())
+
+    multiplier = tf.get_variable(name + "/multiplier", [], initializer=tf.ones_initializer())
+    out = tf.nn.elu(inputs)
+    out = out + bias0
+    out = tf.layers.conv2d(out, depth, 3, padding='same', name='res1/' + name, use_bias = False, kernel_initializer=tf.truncated_normal_initializer(stddev=stddev))
+    out = out + bias1
+    out = out * channel_attention(out, depth)
+    out = tf.nn.elu(out)
     out = out + bias2
     out = tf.layers.conv2d(out, depth, 3, padding='same', name='res2/' + name, use_bias = False, kernel_initializer=tf.zeros_initializer())
     out = out * multiplier + bias3
@@ -248,6 +237,21 @@ def animal_conv_residual_fixup(inputs, depths = [16,32,32,64]):
     out = tf.nn.relu(out)
     return out
 
+
+def animal_conv_residual_fixup_attention(inputs, depths = [16,32,32,64]):
+    out = inputs
+    i = 0
+    for depth in depths:
+        i = i + 1
+        out = tf.layers.conv2d(out, depth, 3, padding='same', name='layer_' + str(i))
+        out = tf.layers.max_pooling2d(out, pool_size=3, strides=2, padding='same')
+        out = residual_block_fixup_attention(out, i, name='rb1' + str(i))
+        out = residual_block_fixup_attention(out, i, name='rb2' + str(i))
+        print('shapes of layer_' + str(i), str(out.get_shape().as_list()))
+    out = tf.nn.elu(out)
+    return out
+
+
 def animal_a2c_network(name, inputs, actions_num, continuous=False, reuse=False):
     with tf.variable_scope(name, reuse=reuse):
         NUM_HIDDEN_NODES = 512
@@ -267,9 +271,9 @@ def animal_a2c_network(name, inputs, actions_num, continuous=False, reuse=False)
 
 def animal_a2c_network_lstm(name, inputs, actions_num, env_num, batch_num, vels_ph, continuous=False, reuse=False):
     with tf.variable_scope(name, reuse=reuse):
-        NUM_HIDDEN_NODES = 256
+        NUM_HIDDEN_NODES = 512
         LSTM_UNITS = 256
-        conv3 = animal_conv_residual(inputs)
+        conv3 = animal_conv_residual_fixup(inputs)
         flatten = tf.contrib.layers.flatten(inputs = conv3)
 
         hidden0 = tf.layers.dense(inputs=vels_ph, units=32, activation=tf.nn.elu)
@@ -294,11 +298,11 @@ def animal_a2c_network_lstm2(name, inputs, actions_num, env_num, batch_num, vels
     with tf.variable_scope(name, reuse=reuse):
         NUM_HIDDEN_NODES = 512
         LSTM_UNITS = 256
-        conv3 = animal_conv_residual_fixup(inputs, depths = [16,32,64,128])
+        conv3 = animal_conv_residual_fixup_attention(inputs, depths = [16,32,64,128])
         flatten = tf.contrib.layers.flatten(inputs = conv3)
 
-        hidden0 = tf.layers.dense(inputs=vels_ph, units=32, activation=tf.nn.elu)
-        hidden1 = tf.layers.dense(inputs=flatten, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
+        hidden0 = tf.layers.dense(inputs=vels_ph, units=32, activation=tf.nn.relu)
+        hidden1 = tf.layers.dense(inputs=flatten, units=NUM_HIDDEN_NODES, activation=tf.nn.relu)
 
         
         dones_ph = tf.placeholder(tf.bool, [batch_num])
@@ -313,3 +317,90 @@ def animal_a2c_network_lstm2(name, inputs, actions_num, env_num, batch_num, vels
         else:
             logits = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=None)
             return logits, value, states_ph, vels_ph, dones_ph, lstm_state, initial_state
+
+
+
+def animal_a2c_network_lstm3(name, inputs, actions_num, env_num, batch_num, vels_ph, continuous=False, reuse=False):
+    with tf.variable_scope(name, reuse=reuse):
+        NUM_HIDDEN_NODES = 512
+        LSTM_UNITS = 256
+        conv3 = animal_conv_residual_fixup_attention(inputs, depths = [16,32,64,128])
+        flatten = tf.contrib.layers.flatten(inputs = conv3)
+
+        hidden0 = tf.layers.dense(inputs=vels_ph, units=128, activation=tf.nn.elu)
+        hidden1 = tf.layers.dense(inputs=flatten, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
+
+        
+        dones_ph = tf.placeholder(tf.bool, [batch_num])
+        states_ph = tf.placeholder(tf.float32, [env_num, 2*LSTM_UNITS])
+        hidden2 = tf.concat([hidden0, hidden1], axis=-1)
+        lstm_out, lstm_state, initial_state = openai_lstm('lstm_ac', hidden2, dones_ph=dones_ph, states_ph=states_ph, units=LSTM_UNITS, env_num=env_num, batch_num=batch_num)
+        value = tf.layers.dense(inputs=lstm_out, units=1, activation=None)
+
+        logits = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=None)
+        return logits, value, states_ph, vels_ph, dones_ph, lstm_state, initial_state
+
+
+def animal_a2c_network_lstm4(name, inputs, actions_num, env_num, batch_num, vels_ph, continuous=False, reuse=False):
+    with tf.variable_scope(name, reuse=reuse):
+        NUM_HIDDEN_NODES = 512
+        LSTM_UNITS = 256
+        conv3 = animal_conv_residual_fixup_attention(inputs, depths = [16,32,64,128])
+        flatten = tf.contrib.layers.flatten(inputs = conv3)
+
+        hidden0 = tf.layers.dense(inputs=vels_ph, units=128, activation=tf.nn.elu)
+        hidden1 = tf.layers.dense(inputs=flatten, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
+
+        
+        dones_ph = tf.placeholder(tf.bool, [batch_num])
+        states_ph = tf.placeholder(tf.float32, [env_num, 2*LSTM_UNITS])
+        hidden2 = tf.concat([hidden0, hidden1], axis=-1)
+        hidden2 = tf.layers.dense(inputs=hidden2, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
+        lstm_out, lstm_state, initial_state = openai_lstm('lstm_ac', hidden2, dones_ph=dones_ph, states_ph=states_ph, units=LSTM_UNITS, env_num=env_num, batch_num=batch_num)
+        value = tf.layers.dense(inputs=lstm_out, units=1, activation=None)
+
+        logits = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=None)
+        return logits, value, states_ph, vels_ph, dones_ph, lstm_state, initial_state
+
+def animal_a2c_network_lstm5(name, inputs, actions_num, env_num, batch_num, vels_ph, continuous=False, reuse=False):
+    with tf.variable_scope(name, reuse=reuse):
+        NUM_HIDDEN_NODES = 512
+        LSTM_UNITS = 512
+        conv3 = animal_conv_residual_fixup_attention(inputs, depths = [16,32,64,128])
+        flatten = tf.contrib.layers.flatten(inputs = conv3)
+
+        hidden0 = tf.layers.dense(inputs=vels_ph, units=128, activation=tf.nn.elu)
+        hidden1 = tf.layers.dense(inputs=flatten, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
+
+        
+        dones_ph = tf.placeholder(tf.bool, [batch_num])
+        states_ph = tf.placeholder(tf.float32, [env_num, 2*LSTM_UNITS])
+        hidden2 = tf.concat([hidden0, hidden1], axis=-1)
+        hidden2 = tf.layers.dense(inputs=hidden2, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
+        lstm_out, lstm_state, initial_state = openai_lstm('lstm_ac', hidden2, dones_ph=dones_ph, states_ph=states_ph, units=LSTM_UNITS, env_num=env_num, batch_num=batch_num)
+        value = tf.layers.dense(inputs=lstm_out, units=1, activation=None)
+
+        logits = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=None)
+        return logits, value, states_ph, vels_ph, dones_ph, lstm_state, initial_state
+
+
+def animal_a2c_network_lstm6(name, inputs, actions_num, env_num, batch_num, vels_ph, continuous=False, reuse=False):
+    with tf.variable_scope(name, reuse=reuse):
+        NUM_HIDDEN_NODES = 1024
+        LSTM_UNITS = 512
+        conv3 = animal_conv_residual_fixup_attention(inputs, depths = [16,32,64,128])
+        flatten = tf.contrib.layers.flatten(inputs = conv3)
+
+        hidden0 = tf.layers.dense(inputs=vels_ph, units=128, activation=tf.nn.elu)
+        hidden1 = tf.layers.dense(inputs=flatten, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
+
+        
+        dones_ph = tf.placeholder(tf.bool, [batch_num])
+        states_ph = tf.placeholder(tf.float32, [env_num, 2*LSTM_UNITS])
+        hidden2 = tf.concat([hidden0, hidden1], axis=-1)
+        hidden2 = tf.layers.dense(inputs=hidden2, units=NUM_HIDDEN_NODES, activation=tf.nn.elu)
+        lstm_out, lstm_state, initial_state = openai_lstm('lstm_ac', hidden2, dones_ph=dones_ph, states_ph=states_ph, units=LSTM_UNITS, env_num=env_num, batch_num=batch_num)
+        value = tf.layers.dense(inputs=lstm_out, units=1, activation=None)
+
+        logits = tf.layers.dense(inputs=lstm_out, units=actions_num, activation=None)
+        return logits, value, states_ph, vels_ph, dones_ph, lstm_state, initial_state

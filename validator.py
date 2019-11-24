@@ -44,11 +44,12 @@ class Validator:
                 self.player.reset()
                 ep_r = 0
                 for it in range(5000):
-                    action = self.player.get_action(s, True)
+                    action = self.player.get_action(s, False)
                     s, r, done, _ =  self.env.step(action)
                     cr += r
                     ep_r += r
                     if done:
+                        s = self.env.reset()
                         break
 
                 if ep_r < -0.95:

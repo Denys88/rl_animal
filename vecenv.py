@@ -1,6 +1,10 @@
 import ray
 from env_configurations import configurations, create_animal
 import numpy as np
+import os
+from hyperparams import BASE_DIR, MIN_TIME, MAX_TIME 
+
+
 
 class IVecEnv(object):
     def step(self, actions):
@@ -11,20 +15,18 @@ class IVecEnv(object):
 
 
 
-class IsaacEnv(IVecEnv):
-    def __init__(self, config_name, num_actors):
-        raise NotImplementedError
-
-    def step(self, actions):
-        raise NotImplementedError 
-
-    def reset(self):
-        raise NotImplementedError 
-
 class RayWorker:
     def __init__(self, config_name):
         self.env = configurations[config_name]['ENV_CREATOR']()
         self.obs = self.env.reset()
+
+
+        self.all_tests = []
+
+        base_dir = BASE_DIR
+        for file in os.listdir(base_dir):
+            if file.endswith(".yaml"):
+                self.all_tests.append(os.path.join(base_dir, file))
     
     def step(self, action):
         next_state, reward, is_done, info = self.env.step(action)
@@ -33,7 +35,14 @@ class RayWorker:
         return next_state, reward, is_done, info
 
     def reset(self):
-        self.obs = self.env.reset()
+        # will increase brackets
+        min_time = MIN_TIME
+        max_time = MAX_TIME
+        from animalai.envs.arena_config import ArenaConfig
+        rand_test = np.random.randint(0, len(self.all_tests))
+        config = ArenaConfig(self.all_tests[rand_test])
+        config.arenas[0].t = np.random.randint(min_time, max_time)
+        self.obs = self.env.reset(config = config)
         return self.obs
 
 
@@ -118,7 +127,5 @@ class RayVecEnv2(IVecEnv):
 def create_vec_env(config_name, num_actors):
     if configurations[config_name]['VECENV_TYPE'] == 'RAY':
         return RayVecEnv(config_name, num_actors)
-    if configurations[config_name]['VECENV_TYPE'] == 'ISAAC':
-        return IsaacEnv(config_name, num_actors)
     if configurations[config_name]['VECENV_TYPE'] == 'ANIMAL':
         return create_animal(num_actors, inference=False)

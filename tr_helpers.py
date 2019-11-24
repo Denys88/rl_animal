@@ -43,6 +43,7 @@ def compute_gae(rewards, dones, values, gamma, tau):
     return returns[::-1]
 
 
+
 def flatten_first_two_dims(arr):
     if arr.ndim > 2:
         return arr.reshape(-1, *arr.shape[-(arr.ndim-2):])
