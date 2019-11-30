@@ -55,7 +55,7 @@ configurations = {
         'VECENV_TYPE' : 'ANIMAL'
     },
     'AnimalAIRay' : {
-        'ENV_CREATOR' : lambda inference=False: create_animal(1, inference),
+        'ENV_CREATOR' : lambda inference=False, config=None: create_animal(1, inference, config=config),
         'VECENV_TYPE' : 'RAY'
     },
 

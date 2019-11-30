@@ -1,7 +1,7 @@
 !ArenaConfig
 arenas:
   0: !Arena
-    t: 250
+    t: 500
     items:
     - !Item
       name: DeathZone

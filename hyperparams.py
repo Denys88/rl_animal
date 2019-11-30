@@ -25,7 +25,7 @@ VEC_SCALE = [1.0, 1.0, 16.0]
 Probability to generate black frames.
 Tested every frame for every env. Good value is in [0.0001,0.003]
 '''
-BLACK_PROBABILITY = 0.0001
+BLACK_PROBABILITY = 0.0000
 
 '''
 When we generating black frames we decidin how many of them to generate.

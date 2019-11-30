@@ -20,8 +20,8 @@ class BasePlayer(object):
         raise NotImplementedError('restore')
 
 
-    def create_env(self):
-        return env_configurations.configurations[self.env_name]['ENV_CREATOR'](inference=True)
+    def create_env(self, game_config = None):
+        return env_configurations.configurations[self.env_name]['ENV_CREATOR'](inference=True, config = game_config)
 
     def get_action(self, obs, is_determenistic = False):
         raise NotImplementedError('step')
