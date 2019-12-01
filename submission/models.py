@@ -45,7 +45,6 @@ class LSTMModelA2C(BaseModel):
         name = dict['name']
         inputs = dict['inputs']
         actions_num = dict['actions_num']
-        prev_actions_ph = dict['prev_actions_ph']
         games_num = dict['games_num']
         batch_num = dict['batch_num']
         vels_ph = dict['vels_ph']

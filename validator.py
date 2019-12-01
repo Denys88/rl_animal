@@ -1,19 +1,19 @@
 import players
 import env_configurations
-
+from hyperparams import BASE_DIR
 validation_list = [
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/1-Food.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/2-Preferences.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/3-Obstacles.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/4-Avoidance.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/5-SpatialReasoning.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/6-Generalization.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/1-Food500.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/2-Preferences500.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/3-Obstacles500.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/4-Avoidance500.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/5-SpatialReasoning500.yaml',
-    '/home/trrrrr/Documents/github/ml/rl_animal/validation/6-Generalization500.yaml',
+    '/validation/1-Food.yaml',
+    '/validation/2-Preferences.yaml',
+    '/validation/3-Obstacles.yaml',
+    '/validation/4-Avoidance.yaml',
+    '/validation/5-SpatialReasoning.yaml',
+    '/validation/6-Generalization.yaml',
+    '/validation/1-Food500.yaml',
+    '/validation/2-Preferences500.yaml',
+    '/validation/3-Obstacles500.yaml',
+    '/validation/4-Avoidance500.yaml',
+    '/validation/5-SpatialReasoning500.yaml',
+    '/validation/6-Generalization500.yaml',
 ]
 
 validation_list500 = [
@@ -37,7 +37,7 @@ class Validator:
         total_loose = 0
         for val_config in validation_list:
             print('starting: ', val_config)
-            s =  self.env.reset(ArenaConfig(val_config))
+            s =  self.env.reset(ArenaConfig(BASE_DIR + val_config))
             cr = 0
             c_looses = 0
             for _ in range(self.run_count):
