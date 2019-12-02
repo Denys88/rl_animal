@@ -2,7 +2,7 @@ import ray
 from env_configurations import configurations, create_animal
 import numpy as np
 import os
-from hyperparams import BASE_DIR, MIN_TIME, MAX_TIME 
+from hyperparams import LEARNING_DIR, MIN_TIME, MAX_TIME 
 
 
 
@@ -23,7 +23,7 @@ class RayWorker:
 
         self.all_tests = []
 
-        base_dir = BASE_DIR
+        base_dir = LEARNING_DIR
         for file in os.listdir(base_dir):
             if file.endswith(".yaml"):
                 self.all_tests.append(os.path.join(base_dir, file))

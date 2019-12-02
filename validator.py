@@ -28,7 +28,7 @@ class Validator:
         self.config = config
         self.player = players.PpoPlayerDiscrete(sess, config)
         self.player.restore(path)
-        self.env = env_configurations.create_animal(1, inference = False, config = validation_list[0], seed = self.seed)
+        self.env = env_configurations.create_animal(1, inference = False, config = BASE_DIR + validation_list[0], seed = self.seed)
         
 
     def run(self):
