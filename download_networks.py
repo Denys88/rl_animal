@@ -2,6 +2,7 @@ import requests
 import os
 import zipfile
 
+
 def download_file_from_google_drive(id, destination):
     URL = "https://docs.google.com/uc?export=download"
 
@@ -35,6 +36,7 @@ if __name__ == "__main__":
     file_id = '1mVGfN0Xoj--26_NIPgXS48ub-Rr89GIw'
     destination = os.path.dirname(os.path.abspath(__file__)) + '/networks.zip'
     extract_destination = os.path.dirname(os.path.abspath(__file__)) + '/nn'
+    print('Starting networks download')
     if os.path.isfile(destination):
         print('Networks were already downloaded')
     else:

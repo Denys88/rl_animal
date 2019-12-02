@@ -1,48 +1,13 @@
 import tr_helpers
-import wrappers
 import tensorflow as tf
 import numpy as np
 import collections
 import time
 from collections import deque, OrderedDict
 from tensorboardX import SummaryWriter
-from tensorflow_utils import TensorFlowVariables
 import gym
 import vecenv
 from tf_moving_mean_std import MovingMeanStd
-
-
-class RewardsMap:
-    def __init__(self, num_actors, width = 40):
-        self.width = width
-        self.height = width
-        self.num_actors = num_actors
-        self.array = np.zeros((num_actors, width, width))
-        self.pos = np.zeros((num_actors, 2))
-
-    def update(self, v, dones):
-        v_scale = 8.0 / 10.0 
-        pos_shift = self.width // 2
-        self.pos = self.pos + v * v_scale
-
-        coords = self.pos.astype(np.int32) + pos_shift
-        coords = np.clip(coords, 0, self.width-1)
-        rewards = np.zeros(self.num_actors)
-        print(self.pos[0])
-        print(coords[0])
-        print(v[0])
-        for i in range(self.num_actors):
-            if (self.array[i, coords[i, 0], coords[i, 1]]) == 0:
-                self.array[i, coords[i, 0], coords[i, 1]] = 1
-            else:
-                rewards[i] = -1.0
-            self.array[i, :] = self.array[i, :] * (1.0 - dones[i])
-            self.pos[i, :] = self.pos[i, :] * (1.0 - dones[i])
-
-        #self.array = self.array * (1.0 - dones)
-        #self.pos = self.pos * (1.0 - dones)
-        return rewards
-        
 
 
 def swap_and_flatten01(arr):
