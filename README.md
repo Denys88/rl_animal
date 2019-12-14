@@ -1,5 +1,7 @@
 # Animal AI 1st Place Solution Presented on NIPS 2019 (my nickname is Trrrrr)
 ## Challenge website and results :http://animalaiolympics.com/results.html
+## My NIPS 2019 Presentation [Animal AI Presentation.pdf](/Animal%20AI%20Presentation.pdf)
+
 I used this exact code, and only made slight changes before sharing.
 I added linux enviroment binaries by default. I tested everything on Linux only.
 You might have some problems to run training on other platforms.
