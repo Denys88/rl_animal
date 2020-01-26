@@ -58,8 +58,6 @@ class A2CAgent:
         self.actions_num = action_space.n   
         self.actions_ph = tf.placeholder('int32', (None,), name = 'actions')       
 
-        self.pos_map = RewardsMap(self.num_actors)
-
         self.old_logp_actions_ph = tf.placeholder('float32', (None, ), name = 'old_logpactions')
         self.rewards_ph = tf.placeholder('float32', (None,), name = 'rewards')
         self.old_values_ph = tf.placeholder('float32', (None,), name = 'old_values')

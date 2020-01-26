@@ -25,7 +25,7 @@ class RayWorker:
 
         base_dir = LEARNING_DIR
         for file in os.listdir(base_dir):
-            if file.endswith(".yaml"):
+            if file.endswith(".yml") or file.endswith(".yaml"):
                 self.all_tests.append(os.path.join(base_dir, file))
     
     def step(self, action):

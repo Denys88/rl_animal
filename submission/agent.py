@@ -13,7 +13,7 @@ class Agent(object):
         """
         print('init1')
         self.resolution = 84
-        self.model_path = '/aaio/data/last84_10_6'
+        self.model_path = '/aaio/data/last84_10_levels'
         #self.model_path = '/aaio/data/last84_9_5'
         #self.model_path = '/aaio/data/last84_8_color_b_0001'
         #self.model_path = '/aaio/data/last84_7_colorAnimalAIRay'
